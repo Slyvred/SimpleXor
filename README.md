@@ -5,5 +5,5 @@ This command line tool allows for file encryption using a xor and also features 
 
 ```console
 foo@bar:~$ ./SimpleXor {file} {key} // Xoring a file
-foo@bar:~$ ./SimpleXor {file} // Ananlyzing a file
+foo@bar:~$ ./SimpleXor {file} // Analyzing a file
 ```
