@@ -14,7 +14,7 @@ using namespace std;
 //#define THREAD
 
 namespace Xor{
-    void Transform(string& input, string key)
+    void Transform(string* input, string key)
     {
         if(!key.size())
             return;
@@ -23,24 +23,34 @@ namespace Xor{
         // I think ?
         key = picosha2::hash256_hex_string(key);
 
-        for (auto i = 0; i < input.length(); i++)
-            input[i] ^= key[i%key.size()];
+        for (auto i = 0; i < input->length(); i++)
+            (*input)[i] ^= key[i%key.size()];
     }
 
     int xorFile(const string& path, const string& key)
     {
-        string output;
+        string* output = new string;
         ifstream file(path);
         if (file.is_open())
         {
             string buff;
             while (getline(file, buff))
-                output += (buff + '\n');
-
+            {
+                if (output->size() + (buff + '\n').size() < output->max_size())
+                {
+                    *output += (buff + '\n');
+                }
+                else
+                {
+                    cerr << "Error, file is too big" << endl;
+                    file.close();
+                    delete output;
+                    return EXIT_FAILURE;
+                }
+            }
             file.close();
 
 #ifdef THREAD
-
             thread th(Transform, ref(output), key);
             th.join();
 #else
@@ -51,7 +61,7 @@ namespace Xor{
             file.clear();
             if (file.is_open())
             {
-                file.write(output.c_str(), output.length() - 1); // - 1 to avoid printing that weird char at the end
+                file.write(output->c_str(), output->length() - 1); // - 1 to avoid printing that weird char at the end
                 file.close();
             }
 
@@ -60,9 +70,11 @@ namespace Xor{
         else
         {
             cerr << "Couldn't open the file !" << endl;
+            delete output;
             return EXIT_FAILURE;
         }
 
+        delete output;
         return EXIT_SUCCESS;
     }
 
@@ -90,27 +102,41 @@ namespace Xor{
 
     int analyzeFile(const string& path)
     {
-        string output;
+        string* output = new string;
         ifstream file(path);
         if (file.is_open())
         {
             string buff;
             while (getline(file, buff))
-                output += (buff + '\n');
+            {
+                if (output->size() + (buff + '\n').size() < output->max_size())
+                {
+                    *output += (buff + '\n');
+                }
+                else
+                {
+                    cerr << "Error, file is too big" << endl;
+                    file.close();
+                    delete output;
+                    return EXIT_FAILURE;
+                }
+            }
             file.close();
 
 #ifdef THREAD
             thread th(Xor::Analyze, output);
             th.join();
 #else
-            Xor::Analyze(output);
+            Xor::Analyze(*output);
 #endif
         }
         else
         {
             cerr << "Couldn't open the file !" << endl;
+            delete output;
             return EXIT_FAILURE;
         }
+        delete output;
         return EXIT_SUCCESS;
     }
 };
